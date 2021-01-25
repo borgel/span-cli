@@ -1,5 +1,6 @@
 use thiserror::Error;
-use serde::{Deserialize};
+use serde::{de, Deserialize, Deserializer};
+use chrono::NaiveDateTime;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -98,7 +99,7 @@ impl Default for RelayState {
    fn default() -> Self {RelayState::Unknown}
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct InverterState {
    pub inverter_brand: String,
    pub inverter_model: String,
@@ -107,16 +108,15 @@ pub struct InverterState {
    pub battery_capacity_kwh: f32,
    pub battery_empty: bool,
    pub battery_full: bool,
+
+   #[serde(deserialize_with = "naive_date_time_from_str")]
+   #[serde(rename = "time_latest_read")]
+   pub time_last_read: NaiveDateTime,
 }
 
-/*
-"battery_capacity_kwh": 9.31,
-"battery_empty": false,
-"battery_full": false,
-"battery_power_request_w": 0,
-"battery_soe_kwh": 8.565,
-"battery_soe_pct": 92,
-"inverter_brand": "LG Electronics Inc.",
-"inverter_model": "D007KEEN261",
-"time_latest_read": "2021-01-24T03:32:37.351936"
-*/
+fn naive_date_time_from_str<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error> where D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    NaiveDateTime::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S.%f").map_err(de::Error::custom)
+}
+

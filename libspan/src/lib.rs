@@ -27,7 +27,10 @@ impl LibSpan {
    }
 
    pub async fn get_inverter_state(&self) -> Result<InverterState, Error> {
-      Err(Error::Unknown)
+      let url = format!("http://{}:6040/status", &self.address);
+      let response = reqwest::get(&url).await?;
+      let is: InverterState = response.json().await?;
+      Ok(is)
    }
 }
 
